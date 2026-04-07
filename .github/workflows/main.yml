@@ -1,0 +1,60 @@
+name: MLOps Pipeline
+
+on:
+  push:
+    branches: [ "main", "abc" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    # 🔹 Step 1: Checkout code
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    # 🔹 Step 2: Setup Python
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.10"
+
+    # 🔹 Step 3: Install dependencies
+    - name: Install dependencies
+      run: |
+        pip install --upgrade pip
+        pip install -r requirements.txt
+
+    # 🔹 Step 4: Run Training (CT)
+    - name: Train Model
+      run: |
+        python train.py
+
+    # 🔹 Step 5: Run Evaluation
+    - name: Evaluate Model
+      run: |
+        python evaluate.py
+
+    # 🔹 Step 6: Save Metrics
+    - name: Upload Results
+      uses: actions/upload-artifact@v3
+      with:
+        name: model-results
+        path: |
+          outputs/
+          metrics/
+
+    # 🔹 Step 7: Run Flask API (CD)
+    - name: Start API
+      run: |
+        python app.py &
+        sleep 10
+
+    # 🔹 Step 8: Test API
+    - name: Test API
+      run: |
+        curl -X POST http://127.0.0.1:5000/predict \
+        -H "Content-Type: application/json" \
+        -d '{"input": [1,2,3,4]}'
